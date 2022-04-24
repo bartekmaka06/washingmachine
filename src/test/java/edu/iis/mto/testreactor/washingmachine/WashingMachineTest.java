@@ -52,21 +52,6 @@ class WashingMachineTest {
     }
 
     @Test
-    void properBatchWithStaticProgramShouldCallEngineandWaterPump() throws WaterPumpException, EngineException {
-        washingMashine.start(properLaundry,programConfiguration);
-
-        InOrder callOrder = Mockito.inOrder(waterPump,engine);
-        callOrder.verify(waterPump)
-                .pour(properWeightKg);
-        callOrder.verify(engine)
-                .runWashing(staticProgram.getTimeInMinutes());
-        callOrder.verify(waterPump)
-                .release();
-        callOrder.verify(engine)
-                .spin();
-    }
-
-    @Test
     void overWeightBatchWithJeansOrWoolMaterialWithNullProgram() {
         double overWeightKG=5d;
         Material []materials={Material.JEANS,Material.WOOL};
@@ -174,6 +159,38 @@ class WashingMachineTest {
         washingMashine=new WashingMachine(dirtDetectorWithBigDirt, engine, waterPump);
         LaundryStatus result = washingMashine.start(properLaundry, autoDetectedprogramConfiguration);
         assertEquals(success(staticProgram), result);
+    }
+
+    @Test
+    void properBatchWithStaticProgramShouldCallEngineandWaterPump() throws WaterPumpException, EngineException {
+        washingMashine.start(properLaundry,programConfiguration);
+
+        InOrder callOrder = Mockito.inOrder(waterPump,engine);
+        callOrder.verify(waterPump)
+                .pour(properWeightKg);
+        callOrder.verify(engine)
+                .runWashing(staticProgram.getTimeInMinutes());
+        callOrder.verify(waterPump)
+                .release();
+        callOrder.verify(engine)
+                .spin();
+    }
+
+    @Test
+    void properBatchWithAutoDetectedProgramShouldCallEngineandWaterPump() throws WaterPumpException, EngineException {
+        DirtDetector dirtDetectorWithBigDirt= laundryBatch -> new Percentage(100d);
+        washingMashine=new WashingMachine(dirtDetectorWithBigDirt, engine, waterPump);
+        washingMashine.start(properLaundry, autoDetectedprogramConfiguration);
+
+        InOrder callOrder = Mockito.inOrder(waterPump,engine);
+        callOrder.verify(waterPump)
+                .pour(properWeightKg);
+        callOrder.verify(engine)
+                .runWashing(staticProgram.getTimeInMinutes());
+        callOrder.verify(waterPump)
+                .release();
+        callOrder.verify(engine)
+                .spin();
     }
 
     private ProgramConfiguration autoDetectProgramWithSpin(Program autoDetectProgram) {
