@@ -28,7 +28,9 @@ class WashingMachineTest {
     double properWeightKg;
     LaundryBatch properLaundry;
     Program staticProgram;
+    Program autoDetectProgram;
     ProgramConfiguration programConfiguration;
+    ProgramConfiguration autoDetectedprogramConfiguration;
     Random random;
     @BeforeEach
     void setUp() throws Exception {
@@ -36,8 +38,10 @@ class WashingMachineTest {
         unrelevant =Material.COTTON;
         properWeightKg=7d;
         staticProgram = Program.LONG;
+        autoDetectProgram=Program.AUTODETECT;
         properLaundry= batch(unrelevant, properWeightKg);
         programConfiguration= staticProgramWithSpin(staticProgram);
+        autoDetectedprogramConfiguration = autoDetectProgramWithSpin(autoDetectProgram);
         washingMashine = new WashingMachine(dirtDetector, engine, waterPump);
     }
 
@@ -144,6 +148,22 @@ class WashingMachineTest {
         washingMashine=new WashingMachine(dirtDetector, brokenEngine, waterPump);
         LaundryStatus result = washingMashine.start(properLaundry, programConfiguration);
         assertEquals(engineFailue(), result);
+    }
+
+    @Test
+    void properBatchWithStaticAutoDetectedProgramShouldThrowUnknownErrorException() {
+        DirtDetector brokenDirtDetector= laundryBatch -> {
+            throw new DirtDetectorException();
+        };
+        washingMashine=new WashingMachine(brokenDirtDetector, engine, waterPump);
+        LaundryStatus result = washingMashine.start(properLaundry, autoDetectedprogramConfiguration);
+        assertEquals(LaundryStatus.builder().withErrorCode(ErrorCode.UNKNOWN_ERROR).withRunnedProgram(null).withResult(Result.FAILURE).build(), result);
+    }
+
+
+
+    private ProgramConfiguration autoDetectProgramWithSpin(Program autoDetectProgram) {
+        return ProgramConfiguration.builder().withProgram(autoDetectProgram).withSpin(true).build();
     }
 
     private LaundryStatus engineFailue() {

@@ -51,7 +51,7 @@ public class WashingMachine {
                             .build();
     }
 
-    private Program specifyProgram(LaundryBatch laundryBatch, ProgramConfiguration programConfiguration) {
+    private Program specifyProgram(LaundryBatch laundryBatch, ProgramConfiguration programConfiguration) throws DirtDetectorException {
         Program program = programConfiguration.getProgram();
         if (program == Program.AUTODETECT) {
             Percentage dirtDegreePercentage = dirtDetector.detectDirtDegree(laundryBatch);

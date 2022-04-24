@@ -9,7 +9,7 @@ public class ProgramConfiguration {
     private final Program program;
     private final boolean spin;
 
-    private ProgramConfiguration(Builder builder) {
+    ProgramConfiguration(Builder builder) {
         this.program = requireNonNull(builder.program, "program == null");
         this.spin = builder.spin;
     }
