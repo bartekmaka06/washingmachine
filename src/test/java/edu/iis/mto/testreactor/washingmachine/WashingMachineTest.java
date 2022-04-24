@@ -12,6 +12,8 @@ import org.mockito.Mockito;
 
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Random;
+
 @ExtendWith(MockitoExtension.class)
 class WashingMachineTest {
 
@@ -27,8 +29,10 @@ class WashingMachineTest {
     LaundryBatch properLaundry;
     Program staticProgram;
     ProgramConfiguration programConfiguration;
+    Random random;
     @BeforeEach
     void setUp() throws Exception {
+        random=new Random();
         unrelevant =Material.COTTON;
         properWeightKg=7d;
         staticProgram = Program.LONG;
@@ -57,6 +61,110 @@ class WashingMachineTest {
         callOrder.verify(engine)
                 .spin();
     }
+
+    @Test
+    void overWeightBatchWithJeansOrWoolMaterialWithNullProgram() {
+        double overWeightKG=5d;
+        Material []materials={Material.JEANS,Material.WOOL};
+        LaundryBatch overWeightLaundry=batch(materials[random.nextInt(materials.length)], overWeightKG);
+        LaundryStatus result = washingMashine.start(overWeightLaundry,null);
+        assertEquals(overWeight(), result);
+    }
+
+    @Test
+    void overWeightBatchWithoutJeansOrWoolMaterialJeWithNullProgram() {
+        double overWeightKG=12d;
+        Material []materials={Material.SYNTETIC,Material.DELICATE,Material.COTTON};
+        LaundryBatch overWeightLaundry=batch(materials[random.nextInt(materials.length)], overWeightKG);
+        LaundryStatus result = washingMashine.start(overWeightLaundry,null);
+        assertEquals(overWeight(), result);
+    }
+
+    @Test
+    void properBatchWithStaticProgramShouldThrowWaterPumpExceptionInPourMethod() {
+        WaterPump brokenWaterPump=new WaterPump() {
+            @Override
+            public void pour(double weigth) throws WaterPumpException {
+                throw new WaterPumpException();
+            }
+            @Override
+            public void release() throws WaterPumpException {}
+        };
+        washingMashine=new WashingMachine(dirtDetector, engine, brokenWaterPump);
+        LaundryStatus result = washingMashine.start(properLaundry, programConfiguration);
+        assertEquals(waterPumpFailure(), result);
+    }
+
+    @Test
+    void properBatchWithStaticProgramShouldThrowWaterPumpExceptionInReleaseMethod() {
+        WaterPump brokenWaterPump=new WaterPump() {
+            @Override
+            public void pour(double weigth) throws WaterPumpException {
+            }
+            @Override
+            public void release() throws WaterPumpException {
+                throw new WaterPumpException();
+            }
+        };
+        washingMashine=new WashingMachine(dirtDetector, engine, brokenWaterPump);
+        LaundryStatus result = washingMashine.start(properLaundry, programConfiguration);
+        assertEquals(waterPumpFailure(), result);
+    }
+
+
+
+    @Test
+    void properBatchWithStaticProgramShouldThrowEngineExceptionInRunWashingMethod() {
+       Engine brokenEngine = new Engine() {
+           @Override
+           public void runWashing(int timeInMinutes) throws EngineException {
+               throw new EngineException();
+           }
+           @Override
+           public void spin() throws EngineException {
+           }
+       };
+        washingMashine=new WashingMachine(dirtDetector, brokenEngine, waterPump);
+        LaundryStatus result = washingMashine.start(properLaundry, programConfiguration);
+        assertEquals(engineFailue(), result);
+    }
+
+
+    @Test
+    void properBatchWithStaticProgramShouldThrowEngineExceptionInSpinMethod() {
+        Engine brokenEngine = new Engine() {
+            @Override
+            public void runWashing(int timeInMinutes) throws EngineException {
+            }
+            @Override
+            public void spin() throws EngineException {
+                throw new EngineException();
+            }
+        };
+        washingMashine=new WashingMachine(dirtDetector, brokenEngine, waterPump);
+        LaundryStatus result = washingMashine.start(properLaundry, programConfiguration);
+        assertEquals(engineFailue(), result);
+    }
+
+    private LaundryStatus engineFailue() {
+        return LaundryStatus.builder().withErrorCode(ErrorCode.ENGINE_FAILURE).withRunnedProgram(staticProgram).withResult(Result.FAILURE).build();
+    }
+
+    private LaundryStatus waterPumpFailure() {
+        return LaundryStatus.builder()
+                .withErrorCode(ErrorCode.WATER_PUMP_FAILURE)
+                .withRunnedProgram(staticProgram)
+                .withResult(Result.FAILURE).build();
+    }
+
+    private LaundryStatus overWeight() {
+        return LaundryStatus.builder()
+                .withErrorCode(ErrorCode.TOO_HEAVY)
+                .withResult(Result.FAILURE)
+                .withRunnedProgram(null)
+                .build();
+    }
+
 
     private LaundryStatus success(Program staticProgram) {
         return LaundryStatus.builder()
