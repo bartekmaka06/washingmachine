@@ -160,7 +160,21 @@ class WashingMachineTest {
         assertEquals(LaundryStatus.builder().withErrorCode(ErrorCode.UNKNOWN_ERROR).withRunnedProgram(null).withResult(Result.FAILURE).build(), result);
     }
 
+    @Test
+    void properBatchWithStaticAutoDetectedProgramShouldDetectMediumProgram() {
+        DirtDetector dirtDetectorWithSmallDirt= laundryBatch -> new Percentage(20d);
+        washingMashine=new WashingMachine(dirtDetectorWithSmallDirt, engine, waterPump);
+        LaundryStatus result = washingMashine.start(properLaundry, autoDetectedprogramConfiguration);
+        assertEquals(success(Program.MEDIUM), result);
+    }
 
+    @Test
+    void properBatchWithStaticAutoDetectedProgramShouldDetectLongProgram() {
+        DirtDetector dirtDetectorWithBigDirt= laundryBatch -> new Percentage(100d);
+        washingMashine=new WashingMachine(dirtDetectorWithBigDirt, engine, waterPump);
+        LaundryStatus result = washingMashine.start(properLaundry, autoDetectedprogramConfiguration);
+        assertEquals(success(staticProgram), result);
+    }
 
     private ProgramConfiguration autoDetectProgramWithSpin(Program autoDetectProgram) {
         return ProgramConfiguration.builder().withProgram(autoDetectProgram).withSpin(true).build();
