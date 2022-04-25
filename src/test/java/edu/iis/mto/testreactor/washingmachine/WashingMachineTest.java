@@ -22,11 +22,26 @@ class WashingMachineTest {
     @Mock
     private Engine engine;
     @Mock
+    private Engine engineWithBrokenRunWashing;
+    @Mock
+    private Engine engineWithBrokenSpin;
+    @Mock
     private WaterPump waterPump;
+    @Mock
+    private WaterPump waterPumpWithBrokenPour;
+    @Mock
+    private WaterPump waterPumpWithBrokenRelease;
+
     private WashingMachine washingMashine;
     Material unrelevant;
+    Material []firstTypeMaterials;
+    Material []secondTypeMaterials;
     double properWeightKg;
+    double overWeightKgForFirstTypeMaterials;
+    double overWeightKgForSecondTypeMaterials;
     LaundryBatch properLaundry;
+    LaundryBatch overWeightLaundryForFirstTypeMaterials;
+    LaundryBatch overWeightLaundryForSecondTypeMaterials;
     Program staticProgram;
     Program autoDetectProgram;
     ProgramConfiguration programConfiguration;
@@ -36,13 +51,54 @@ class WashingMachineTest {
     void setUp() throws Exception {
         random=new Random();
         unrelevant =Material.COTTON;
+        firstTypeMaterials= new Material[]{Material.JEANS, Material.WOOL};
+        secondTypeMaterials= new Material[]{Material.SYNTETIC, Material.DELICATE, Material.COTTON};
         properWeightKg=7d;
+        overWeightKgForFirstTypeMaterials=5d;
+        overWeightKgForSecondTypeMaterials=12d;
         staticProgram = Program.LONG;
         autoDetectProgram=Program.AUTODETECT;
         properLaundry= batch(unrelevant, properWeightKg);
+        overWeightLaundryForFirstTypeMaterials=batch(firstTypeMaterials[random.nextInt(firstTypeMaterials.length)], overWeightKgForFirstTypeMaterials);
+        overWeightLaundryForSecondTypeMaterials=batch(secondTypeMaterials[random.nextInt(secondTypeMaterials.length)], overWeightKgForSecondTypeMaterials);
         programConfiguration= staticProgramWithSpin(staticProgram);
         autoDetectedprogramConfiguration = autoDetectProgramWithSpin(autoDetectProgram);
         washingMashine = new WashingMachine(dirtDetector, engine, waterPump);
+        engineWithBrokenRunWashing=new Engine() {
+            @Override
+            public void runWashing(int timeInMinutes) throws EngineException {
+                throw new EngineException();
+            }
+            @Override
+            public void spin() throws EngineException {
+            }
+        };
+        engineWithBrokenSpin = new Engine() {
+            @Override
+            public void runWashing(int timeInMinutes) throws EngineException {
+            }
+            @Override
+            public void spin() throws EngineException {
+                throw new EngineException();
+            }
+        };
+        waterPumpWithBrokenPour=new WaterPump() {
+            @Override
+            public void pour(double weigth) throws WaterPumpException {
+                throw new WaterPumpException();
+            }
+            @Override
+            public void release() throws WaterPumpException {}
+        };
+        waterPumpWithBrokenRelease=new WaterPump() {
+            @Override
+            public void pour(double weigth) throws WaterPumpException {
+            }
+            @Override
+            public void release() throws WaterPumpException {
+                throw new WaterPumpException();
+            }
+        };
     }
 
     @Test
@@ -53,93 +109,47 @@ class WashingMachineTest {
 
     @Test
     void overWeightBatchWithJeansOrWoolMaterialWithNullProgram() {
-        double overWeightKG=5d;
-        Material []materials={Material.JEANS,Material.WOOL};
-        LaundryBatch overWeightLaundry=batch(materials[random.nextInt(materials.length)], overWeightKG);
-        LaundryStatus result = washingMashine.start(overWeightLaundry,null);
+        LaundryStatus result = washingMashine.start(overWeightLaundryForFirstTypeMaterials,null);
         assertEquals(overWeight(), result);
     }
 
     @Test
     void overWeightBatchWithoutJeansOrWoolMaterialJeWithNullProgram() {
-        double overWeightKG=12d;
-        Material []materials={Material.SYNTETIC,Material.DELICATE,Material.COTTON};
-        LaundryBatch overWeightLaundry=batch(materials[random.nextInt(materials.length)], overWeightKG);
-        LaundryStatus result = washingMashine.start(overWeightLaundry,null);
+        LaundryStatus result = washingMashine.start(overWeightLaundryForSecondTypeMaterials,null);
         assertEquals(overWeight(), result);
     }
 
     @Test
     void properBatchWithStaticProgramShouldThrowWaterPumpExceptionInPourMethod() {
-        WaterPump brokenWaterPump=new WaterPump() {
-            @Override
-            public void pour(double weigth) throws WaterPumpException {
-                throw new WaterPumpException();
-            }
-            @Override
-            public void release() throws WaterPumpException {}
-        };
-        washingMashine=new WashingMachine(dirtDetector, engine, brokenWaterPump);
+        washingMashine=new WashingMachine(dirtDetector, engine, waterPumpWithBrokenPour);
         LaundryStatus result = washingMashine.start(properLaundry, programConfiguration);
         assertEquals(waterPumpFailure(), result);
     }
 
     @Test
     void properBatchWithStaticProgramShouldThrowWaterPumpExceptionInReleaseMethod() {
-        WaterPump brokenWaterPump=new WaterPump() {
-            @Override
-            public void pour(double weigth) throws WaterPumpException {
-            }
-            @Override
-            public void release() throws WaterPumpException {
-                throw new WaterPumpException();
-            }
-        };
-        washingMashine=new WashingMachine(dirtDetector, engine, brokenWaterPump);
+        washingMashine=new WashingMachine(dirtDetector, engine, waterPumpWithBrokenRelease);
         LaundryStatus result = washingMashine.start(properLaundry, programConfiguration);
         assertEquals(waterPumpFailure(), result);
     }
 
-
-
     @Test
     void properBatchWithStaticProgramShouldThrowEngineExceptionInRunWashingMethod() {
-       Engine brokenEngine = new Engine() {
-           @Override
-           public void runWashing(int timeInMinutes) throws EngineException {
-               throw new EngineException();
-           }
-           @Override
-           public void spin() throws EngineException {
-           }
-       };
-        washingMashine=new WashingMachine(dirtDetector, brokenEngine, waterPump);
+        washingMashine=new WashingMachine(dirtDetector, engineWithBrokenRunWashing, waterPump);
         LaundryStatus result = washingMashine.start(properLaundry, programConfiguration);
         assertEquals(engineFailue(), result);
     }
 
-
     @Test
     void properBatchWithStaticProgramShouldThrowEngineExceptionInSpinMethod() {
-        Engine brokenEngine = new Engine() {
-            @Override
-            public void runWashing(int timeInMinutes) throws EngineException {
-            }
-            @Override
-            public void spin() throws EngineException {
-                throw new EngineException();
-            }
-        };
-        washingMashine=new WashingMachine(dirtDetector, brokenEngine, waterPump);
+        washingMashine=new WashingMachine(dirtDetector, engineWithBrokenSpin, waterPump);
         LaundryStatus result = washingMashine.start(properLaundry, programConfiguration);
         assertEquals(engineFailue(), result);
     }
 
     @Test
     void properBatchWithStaticAutoDetectedProgramShouldThrowUnknownErrorException() {
-        DirtDetector brokenDirtDetector= laundryBatch -> {
-            throw new DirtDetectorException();
-        };
+        DirtDetector brokenDirtDetector= laundryBatch -> null;
         washingMashine=new WashingMachine(brokenDirtDetector, engine, waterPump);
         LaundryStatus result = washingMashine.start(properLaundry, autoDetectedprogramConfiguration);
         assertEquals(LaundryStatus.builder().withErrorCode(ErrorCode.UNKNOWN_ERROR).withRunnedProgram(null).withResult(Result.FAILURE).build(), result);
@@ -216,7 +226,6 @@ class WashingMachineTest {
                 .build();
     }
 
-
     private LaundryStatus success(Program staticProgram) {
         return LaundryStatus.builder()
                 .withErrorCode(ErrorCode.NO_ERROR)
@@ -238,5 +247,4 @@ class WashingMachineTest {
                 .withWeightKg(properWeightKg)
                 .build();
     }
-
 }
