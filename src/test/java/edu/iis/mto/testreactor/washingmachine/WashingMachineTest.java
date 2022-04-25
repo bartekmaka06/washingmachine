@@ -22,15 +22,7 @@ class WashingMachineTest {
     @Mock
     private Engine engine;
     @Mock
-    private Engine engineWithBrokenRunWashing;
-    @Mock
-    private Engine engineWithBrokenSpin;
-    @Mock
     private WaterPump waterPump;
-    @Mock
-    private WaterPump waterPumpWithBrokenPour;
-    @Mock
-    private WaterPump waterPumpWithBrokenRelease;
 
     private WashingMachine washingMashine;
     Material unrelevant;
@@ -64,41 +56,6 @@ class WashingMachineTest {
         programConfiguration= staticProgramWithSpin(staticProgram);
         autoDetectedprogramConfiguration = autoDetectProgramWithSpin(autoDetectProgram);
         washingMashine = new WashingMachine(dirtDetector, engine, waterPump);
-        engineWithBrokenRunWashing=new Engine() {
-            @Override
-            public void runWashing(int timeInMinutes) throws EngineException {
-                throw new EngineException();
-            }
-            @Override
-            public void spin() throws EngineException {
-            }
-        };
-        engineWithBrokenSpin = new Engine() {
-            @Override
-            public void runWashing(int timeInMinutes) throws EngineException {
-            }
-            @Override
-            public void spin() throws EngineException {
-                throw new EngineException();
-            }
-        };
-        waterPumpWithBrokenPour=new WaterPump() {
-            @Override
-            public void pour(double weigth) throws WaterPumpException {
-                throw new WaterPumpException();
-            }
-            @Override
-            public void release() throws WaterPumpException {}
-        };
-        waterPumpWithBrokenRelease=new WaterPump() {
-            @Override
-            public void pour(double weigth) throws WaterPumpException {
-            }
-            @Override
-            public void release() throws WaterPumpException {
-                throw new WaterPumpException();
-            }
-        };
     }
 
     @Test
@@ -120,29 +77,29 @@ class WashingMachineTest {
     }
 
     @Test
-    void properBatchWithStaticProgramShouldThrowWaterPumpExceptionInPourMethod() {
-        washingMashine=new WashingMachine(dirtDetector, engine, waterPumpWithBrokenPour);
+    void properBatchWithStaticProgramShouldThrowWaterPumpExceptionInPourMethod() throws WaterPumpException {
+        Mockito.doThrow(new WaterPumpException()).when(waterPump).pour(properWeightKg);
         LaundryStatus result = washingMashine.start(properLaundry, programConfiguration);
         assertEquals(waterPumpFailure(), result);
     }
 
     @Test
-    void properBatchWithStaticProgramShouldThrowWaterPumpExceptionInReleaseMethod() {
-        washingMashine=new WashingMachine(dirtDetector, engine, waterPumpWithBrokenRelease);
+    void properBatchWithStaticProgramShouldThrowWaterPumpExceptionInReleaseMethod() throws WaterPumpException {
+        Mockito.doThrow(new WaterPumpException()).when(waterPump).release();
         LaundryStatus result = washingMashine.start(properLaundry, programConfiguration);
         assertEquals(waterPumpFailure(), result);
     }
 
     @Test
-    void properBatchWithStaticProgramShouldThrowEngineExceptionInRunWashingMethod() {
-        washingMashine=new WashingMachine(dirtDetector, engineWithBrokenRunWashing, waterPump);
+    void properBatchWithStaticProgramShouldThrowEngineExceptionInRunWashingMethod() throws EngineException {
+        Mockito.doThrow(new EngineException()).when(engine).runWashing(staticProgram.getTimeInMinutes());
         LaundryStatus result = washingMashine.start(properLaundry, programConfiguration);
         assertEquals(engineFailue(), result);
     }
 
     @Test
-    void properBatchWithStaticProgramShouldThrowEngineExceptionInSpinMethod() {
-        washingMashine=new WashingMachine(dirtDetector, engineWithBrokenSpin, waterPump);
+    void properBatchWithStaticProgramShouldThrowEngineExceptionInSpinMethod() throws EngineException {
+        Mockito.doThrow(new EngineException()).when(engine).spin();
         LaundryStatus result = washingMashine.start(properLaundry, programConfiguration);
         assertEquals(engineFailue(), result);
     }
